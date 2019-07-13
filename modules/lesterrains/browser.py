@@ -41,7 +41,9 @@ class LesterrainsBrowser(PagesBrowser):
 
     search = URL('/index.php\?mode_aff=liste&(?P<query>.*)', SearchPage)
 
-    housing = URL('/index.php\?mode_aff=maisonterrain&idter=(?P<_id>\d+)', HousingPage)
+    #housing = URL('/index.php\?mode_aff=maisonterrain&idter=(?P<_id>\d+)', HousingPage)
+
+    housing = URL('http://www.les-terrains.com/index.php?page=terrains&mode_aff=maisonterrain&idter=3192269&ville=montastruc%20la%20conseillere&departement=31', HousingPage)
     
     def get_cities(self, pattern):
         return self.cities.open(city=pattern).get_cities()
