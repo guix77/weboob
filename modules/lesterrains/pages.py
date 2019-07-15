@@ -29,7 +29,7 @@ from weboob.browser.pages import JsonPage, HTMLPage, pagination
 from weboob.capabilities.base import Currency
 from weboob.capabilities.housing import (
     Housing, HousingPhoto, City,
-    POSTS_TYPES, HOUSE_TYPES, ADVERT_TYPES
+    POSTS_TYPES, HOUSE_TYPES, ADVERT_TYPES, UTILITIES
 )
 from .constants import BASE_URL
 
@@ -89,12 +89,42 @@ class SearchPage(HTMLPage):
 
             obj_house_type = HOUSE_TYPES.LAND
 
+            obj_title = CleanText('.//div[@class="presentationItem"]/h2/a')
+
+            obj_area = CleanDecimal(
+                Regexp(
+                    CleanText('.//div[@class="presentationItem"]/h3'),
+                    'surface de (\d+) m²'
+                )
+            )
+
+            obj_cost = CleanDecimal(
+                CleanText(
+                    './/div[@class="presentationItem"]/h3/span[1]',
+                    replace=[(".", ""),(" €","")]
+                )
+            )
+
+            obj_currency = Currency.get_currency(u'€')
+
+            obj_date = Date(
+               CleanText(
+                   './/div[@class="presentationItem"]//span[@class="majItem"]',
+                   replace=[("Mise à jour : ", "")])
+            )
+
+            obj_text = CleanText('.//div[@class="presentationItem"]/p')
+
+            obj_phone = CleanText('.//div[@class="divBoutonContact"]/div[@class="phone-numbers-bloc"]/p[1]/strong')
+
             def obj_photos(self):
                 for photo in self.xpath('.//div[has-class("photoItemListe")]/img/@data-src'):
                     if photo:
                         photo_url = BASE_URL + '/' + photo
                         return [HousingPhoto(photo_url)]
                 else: return []
+
+            obj_utilities = UTILITIES.UNKNOWN
 
 class HousingPage(HTMLPage):
 
@@ -145,3 +175,5 @@ class HousingPage(HTMLPage):
                 photo_url = BASE_URL + '/' + Attr('.', 'data-big-photo')(photo)
                 photos.append(HousingPhoto(photo_url))
             return photos
+
+        obj_utilities = UTILITIES.UNKNOWN
