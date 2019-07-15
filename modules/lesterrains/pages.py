@@ -91,12 +91,30 @@ class SearchPage(HTMLPage):
 
             obj_title = CleanText('.//div[@class="presentationItem"]/h2/a')
 
-            obj_area = CleanDecimal(
-                Regexp(
-                    CleanText('.//div[@class="presentationItem"]/h3'),
-                    'surface de (\d+) m²'
-                )
-            )
+            def obj_area(self):
+                min_area = CleanDecimal(
+                    Regexp(
+                        CleanText('.//div[@class="presentationItem"]/h3'),
+                        'surface de (\d+) m²'
+                    )
+                )(self)
+                print(min_area)
+                max_area = CleanDecimal(
+                    Regexp(
+                        CleanText('.//div[@class="presentationItem"]/h3'),
+                        'à (\d+) m²',
+                        default=0
+                    )
+                )(self)
+                if (max_area > min_area): return max_area
+                else: return min_area
+
+            # obj_area = CleanDecimal(
+            #     Regexp(
+            #         CleanText('.//div[@class="presentationItem"]/h3'),
+            #         'surface de (\d+) m²'
+            #     )
+            # )
 
             obj_cost = CleanDecimal(
                 CleanText(
