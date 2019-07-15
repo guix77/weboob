@@ -28,11 +28,17 @@ __all__ = ['LesterrainsModule']
 class LesterrainsModule(Module, CapHousing):
 
     NAME = 'lesterrains'
-    DESCRIPTION = 'lesterrains website'
+
+    DESCRIPTION = 'Les-Terrains.com'
+
     MAINTAINER = 'Guntra'
+
     EMAIL = 'guntra@example.com'
+
     LICENSE = 'LGPLv3+'
+
     VERSION = '1.6'
+    
     BROWSER = LesterrainsBrowser
 
     def search_city(self, pattern):
@@ -43,15 +49,11 @@ class LesterrainsModule(Module, CapHousing):
         if len(cities) == 0:
             return list()
         return self.browser.search_housings(
-            query.type,
             cities,
-            query.nb_rooms,
             query.area_min,
             query.area_max,
             query.cost_min,
-            query.cost_max,
-            query.house_types,
-            query.advert_types
+            query.cost_max
         )
     
     def get_housing(self, housing):

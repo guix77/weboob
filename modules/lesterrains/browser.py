@@ -18,7 +18,9 @@
 # along with this weboob module. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import unicode_literals
+import re
 from weboob.browser import PagesBrowser, URL
+from weboob.browser.filters.standard import CleanText, Lower, Regexp
 from weboob.capabilities.housing import (TypeNotSupported, POSTS_TYPES, HOUSE_TYPES)
 from weboob.tools.compat import urlencode
 from .pages import CitiesPage, SearchPage, HousingPage
@@ -39,58 +41,45 @@ class LesterrainsBrowser(PagesBrowser):
 
     cities = URL('/api/get-search.php\?q=(?P<city>.*)', CitiesPage)
 
-    search = URL('/index.php\?mode_aff=liste&(?P<query>.*)', SearchPage)
+    search = URL('/index.php\?mode_aff=liste&ongletAccueil=Terrains&(?P<query>.*)&distance=0', SearchPage)
 
-    #housing = URL('/index.php\?mode_aff=maisonterrain&idter=(?P<_id>\d+)', HousingPage)
-
-    housing = URL('http://www.les-terrains.com/index.php?page=terrains&mode_aff=maisonterrain&idter=3192269&ville=montastruc%20la%20conseillere&departement=31', HousingPage)
+    housing = URL('/index.php\?page=terrains&mode_aff=un_terrain&idter=(?P<_id>\d+).*', HousingPage)
     
     def get_cities(self, pattern):
         return self.cities.open(city=pattern).get_cities()
 
-    def search_housings(
-        self, type, cities, nb_rooms, area_min, area_max,
-        cost_min, cost_max, house_types, advert_types
-    ):
-            if type not in self.TYPES:
-                raise TypeNotSupported()
-            ret = []
-            if type == POSTS_TYPES.VIAGER:
-                ret = ['Viager']
-            else:
-                for house_type in house_types:
-                    if house_type in self.RET:
-                        ret.append(self.RET.get(house_type))
+    def search_housings(self, cities, area_min, area_max, cost_min, cost_max):
 
-            # data = {'location': ','.join(cities).encode('iso 8859-1'),
-            #         'furnished': type == POSTS_TYPES.FURNISHED_RENT,
-            #         'areaMin': area_min or '',
-            #         'areaMax': area_max or '',
-            #         'priceMin': cost_min or '',
-            #         'priceMax': cost_max or '',
-            #         'transaction': self.TYPES.get(type, 'location'),
-            #         'recherche': '',
-            #         'mode': '',
-            #         'proximity': '0',
-            #         'roomMin': nb_rooms or '',
-            #         'page': '1'}
+        def get_departement(city):
+            return re.split(";", city)[0][:2]
 
-            data = {
-                'ville': "montastruc la conseillere",
-                'ongletAccueil': 'Terrains'
-            }
+        def get_ville(city):
+            return re.split(";", city)[1].lower()
 
-            # data = {
-            #     'ville': ','.join(cities).encode('iso 8859-1'),
-            #     'ongletAccueil': 'Terrains'
-            # }
+        city = cities[0]
+        query = urlencode({
+            "departement": get_departement(city),
+            "ville": get_ville(city),
+            "prixMin": cost_min or '',
+            "prixMax": cost_max or '',
+            "surfMin": area_min or '',
+            "surfMax": area_max or '',
+        })
+        return self.search.go(query=query).iter_housings()
 
-            query = urlencode(data)
-
-            return self.search.go(query=query).iter_housings(
-                query_type=type,
-                advert_types=advert_types
-            )
+        # results = []
+        # for city in cities:
+        #     query = urlencode({
+        #         "departement": get_departement(city),
+        #         "ville": get_ville(city),
+        #         "prixMin": cost_min or '',
+        #         "prixMax": cost_max or '',
+        #         "surfMin": area_min or '',
+        #         "surfMax": area_max or '',
+        #     })
+        #     result = self.search.go(query=query).iter_housings()
+        #     results.append(result)
+        # return results
 
     def get_housing(self, _id, housing=None):
-        return self.housing.go(_id=_id).get_housing(obj=housing)
+        return self.housing.go(_id = _id).get_housing(obj=housing)

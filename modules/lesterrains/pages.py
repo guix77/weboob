@@ -18,18 +18,19 @@
 # along with this weboob module. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import unicode_literals
-import math
-from weboob.browser.filters.standard import (CleanDecimal, CleanText, Env, Lower, Regexp, QueryValue)
+from weboob.browser.filters.standard import (
+    CleanDecimal, CleanText,
+    Date, Lower, Regexp, QueryValue
+)
 from weboob.browser.filters.json import Dict
 from weboob.browser.filters.html import Attr, AbsoluteLink
 from weboob.browser.elements import ItemElement, ListElement, DictElement, method
 from weboob.browser.pages import JsonPage, HTMLPage, pagination
-from weboob.capabilities.base import NotAvailable, NotLoaded, Currency as BaseCurrency
+from weboob.capabilities.base import Currency
 from weboob.capabilities.housing import (
     Housing, HousingPhoto, City,
     POSTS_TYPES, HOUSE_TYPES, ADVERT_TYPES
 )
-from weboob.tools.compat import unquote
 from .constants import BASE_URL
 
 
@@ -45,7 +46,6 @@ class CitiesPage(JsonPage):
             return [{"locations": []}]
 
     @method
-
     class get_cities(DictElement):
 
         item_xpath = 'cities'
@@ -54,15 +54,15 @@ class CitiesPage(JsonPage):
 
             klass = City
 
-            obj_id = Dict('id')
+            obj_id = Dict('id') & CleanText() & Lower()
 
-            obj_name = Dict('id') & CleanText() & Lower() & Regexp(pattern='\d+;(.+)')
+            obj_name = Dict('id') & CleanText() & Lower()
 
 
 class SearchPage(HTMLPage):
+
     @pagination
     @method
-    
     class iter_housings(ListElement):
 
         item_xpath = '//article[has-class("itemListe")]'
@@ -73,12 +73,6 @@ class SearchPage(HTMLPage):
 
             klass = Housing
 
-            obj_type = POSTS_TYPES.SALE
-
-            obj_advert_type = ADVERT_TYPES.PROFESSIONAL
-
-            obj_house_type = HOUSE_TYPES.LAND
-
             obj_id = QueryValue(
                 Attr(
                     './/div[has-class("presentationItem")]/h2/a',
@@ -87,84 +81,67 @@ class SearchPage(HTMLPage):
                 'idter'
             )
 
+            obj_url = AbsoluteLink('.//h2/a')
+
+            obj_type = POSTS_TYPES.SALE
+
+            obj_advert_type = ADVERT_TYPES.PROFESSIONAL
+
+            obj_house_type = HOUSE_TYPES.LAND
+
             def obj_photos(self):
-                url = BASE_URL + '/' + Attr(
-                    './/div[has-class("photoItemListe")]/img',
-                    'data-src'
-                )(self)
-                if url: return [HousingPhoto(url)]
+                for photo in self.xpath('.//div[has-class("photoItemListe")]/img/@data-src'):
+                    if photo:
+                        photo_url = BASE_URL + '/' + photo
+                        return [HousingPhoto(photo_url)]
                 else: return []
 
 class HousingPage(HTMLPage):
-    @method
 
+    @method
     class get_housing(ItemElement):
         
         klass = Housing
 
         obj_id = Attr(
-            './a[has-class("add-to-selection")]',
+            '//article//a[has-class("add-to-selection")]',
             'data-id'
         )
-
-        obj_advert_type = ADVERT_TYPES.PROFESSIONAL
-
-        def obj_type(self):
-            type = Env('type')(self)
-            if type == 'location':
-                if 'appartement-meuble' in self.page.url:
-                    return POSTS_TYPES.FURNISHED_RENT
-                else:
-                    return POSTS_TYPES.RENT
-            elif type == 'achat':
-                return POSTS_TYPES.SALE
-            else:
-                return NotAvailable
 
         def obj_url(self):
             return self.page.url
 
-        def obj_house_type(self):
-            url = self.obj_url()
-            for house_type, types in QUERY_HOUSE_TYPES.items():
-                for type in types:
-                    if ('/%s/' % type) in url:
-                        return house_type
-            return NotAvailable
+        obj_type = POSTS_TYPES.SALE
 
-        obj_title = CleanText('//h1[has-class("OfferTop-title")]')
+        obj_advert_type = ADVERT_TYPES.PROFESSIONAL
+
+        obj_house_type = HOUSE_TYPES.LAND
+
+        obj_title = CleanText('//article[@id="annonceTerrain"]/header/h1')
 
         obj_area = CleanDecimal(
-            Regexp(
-                CleanText(
-                    '//article/header/h1/strong'
-                ),
-                r'(\d+)',
-            ),
-            default=NotAvailable
+            CleanText('//table[@id="price-list"]/tbody/tr/td[1]')
         )
 
         obj_cost = CleanDecimal(
-            '//span[has-class("OfferTop-price")]',
-            default=NotAvailable
+            CleanText('//table[@id="price-list"]/tbody/tr/td[2]', replace=[(".", "")])
         )
 
-        obj_text = CleanText('//div[has-class("OfferDetails-content")]/p[1]')
+        obj_currency = Currency.get_currency(u'€')
+
+        obj_date = Date(
+            CleanText('//section[@id="photos-details"]/div[@class="right-bloc"]/div/div[3]/div[2]/strong')
+        )
+
+        obj_location = CleanText('//article[@id="annonceTerrain"]/div[@class="btn-vert-bloc"]/a/strong')
+
+        obj_text = CleanText('//div[@id="informationsTerrain"]/p[2]')
+
+        obj_phone = CleanText('//div[@id="infos-annonceur"]/div/div/div[@class="phone-numbers-bloc"]/p/strong')
 
         def obj_photos(self):
             photos = []
-            for photo in self.xpath('//div[has-class("OfferSlider")]//img'):
-                photo_url = Attr('.', 'src')(photo)
-                photo_url = photo_url.replace('640/480', '800/600')
+            for photo in self.xpath('//div[@id="miniatures-carousel"]//img'):
+                photo_url = BASE_URL + '/' + Attr('.', 'data-big-photo')(photo)
                 photos.append(HousingPhoto(photo_url))
             return photos
-
-        obj_rooms = CleanDecimal(
-            '//div[has-class("MiniData")]//p[has-class("MiniData-item")][2]',
-            default=NotAvailable
-        )
-        
-        obj_bedrooms = CleanDecimal(
-            '//div[has-class("MiniData")]//p[has-class("MiniData-item")][3]',
-            default=NotAvailable
-        )
