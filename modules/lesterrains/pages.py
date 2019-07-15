@@ -113,6 +113,8 @@ class SearchPage(HTMLPage):
                    replace=[("Mise à jour : ", "")])
             )
 
+            obj_location = CleanText('.//div[@class="presentationItem"]/h2/a/span')
+
             obj_text = CleanText('.//div[@class="presentationItem"]/p')
 
             obj_phone = CleanText('.//div[@class="divBoutonContact"]/div[@class="phone-numbers-bloc"]/p[1]/strong')
@@ -163,7 +165,7 @@ class HousingPage(HTMLPage):
             CleanText('//section[@id="photos-details"]/div[@class="right-bloc"]/div/div[3]/div[2]/strong')
         )
 
-        obj_location = CleanText('//article[@id="annonceTerrain"]/div[@class="btn-vert-bloc"]/a/strong')
+        obj_location = CleanText('//article[@id="annonceTerrain"]/header/h1/strong')
 
         obj_text = CleanText('//div[@id="informationsTerrain"]/p[2]')
 
