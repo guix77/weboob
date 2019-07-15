@@ -55,7 +55,7 @@ class LesterrainsTest(BackendTest, HousingTest):
         query.area_min = 500
         query.type = POSTS_TYPES.SALE
         query.cities = []
-        for city in self.backend.search_city('toulouse'):
+        for city in self.backend.search_city('montastruc'):
             city.backend = self.backend.name
             query.cities.append(city)
         self.check_against_query(query)
