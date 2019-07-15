@@ -98,7 +98,6 @@ class SearchPage(HTMLPage):
                         'surface de (\d+) m²'
                     )
                 )(self)
-                print(min_area)
                 max_area = CleanDecimal(
                     Regexp(
                         CleanText('.//div[@class="presentationItem"]/h3'),
@@ -106,15 +105,10 @@ class SearchPage(HTMLPage):
                         default=0
                     )
                 )(self)
-                if (max_area > min_area): return max_area
-                else: return min_area
-
-            # obj_area = CleanDecimal(
-            #     Regexp(
-            #         CleanText('.//div[@class="presentationItem"]/h3'),
-            #         'surface de (\d+) m²'
-            #     )
-            # )
+                if (max_area > min_area):
+                    return max_area
+                else:
+                    return min_area
 
             obj_cost = CleanDecimal(
                 CleanText(
@@ -169,8 +163,26 @@ class HousingPage(HTMLPage):
 
         obj_title = CleanText('//article[@id="annonceTerrain"]/header/h1')
 
+        # def obj_area(self):
+        #     test = CleanText(
+        #         '//table[@id="price-list"]/tbody/tr/td[2]',
+        #         replace=[("m²","")]
+        #     )(self)
+        #     print(test)
+        #     min_area = CleanDecimal(
+        #         CleanText(
+        #             '//table[@id="price-list"]/tbody/tr/td[2]',
+        #             replace=[("m²","")]
+        #         )
+        #     )(self)
+        #     print("page min area", min_area)
+        #     return min_area
+
         obj_area = CleanDecimal(
-            CleanText('//table[@id="price-list"]/tbody/tr/td[1]')
+            CleanText(
+                '//table[@id="price-list"]/tbody/tr/td[2]',
+                replace=[("m²","")]
+            )
         )
 
         obj_cost = CleanDecimal(
