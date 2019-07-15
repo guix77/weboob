@@ -163,31 +163,33 @@ class HousingPage(HTMLPage):
 
         obj_title = CleanText('//article[@id="annonceTerrain"]/header/h1')
 
-        # def obj_area(self):
-        #     test = CleanText(
-        #         '//table[@id="price-list"]/tbody/tr/td[2]',
-        #         replace=[("m²","")]
-        #     )(self)
-        #     print(test)
-        #     min_area = CleanDecimal(
-        #         CleanText(
-        #             '//table[@id="price-list"]/tbody/tr/td[2]',
-        #             replace=[("m²","")]
-        #         )
-        #     )(self)
-        #     print("page min area", min_area)
-        #     return min_area
+        def obj_area(self):
+            max_area = 0
+            for land in self.xpath('//table[@id="price-list"]/tbody/tr'):
+                area = CleanDecimal(
+                    CleanText(
+                        './td[2]',
+                        replace=[("m²","")]
+                    )
+                )(land)
+                if area > max_area:
+                    max_area = area
+            return max_area
 
-        obj_area = CleanDecimal(
-            CleanText(
-                '//table[@id="price-list"]/tbody/tr/td[2]',
-                replace=[("m²","")]
-            )
-        )
-
-        obj_cost = CleanDecimal(
-            CleanText('//table[@id="price-list"]/tbody/tr/td[2]', replace=[(".", "")])
-        )
+        def obj_cost(self):
+            min_cost = 0
+            for land in self.xpath('//table[@id="price-list"]/tbody/tr'):
+                cost = CleanDecimal(
+                    CleanText(
+                        './td[3]',
+                        replace=[(".","")]
+                    )
+                )(land)
+                if min_cost == 0:
+                    min_cost = cost
+                if cost < min_cost:
+                    min_cost = cost
+            return min_cost
 
         obj_currency = Currency.get_currency(u'€')
 
